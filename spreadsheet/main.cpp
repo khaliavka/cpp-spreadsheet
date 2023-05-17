@@ -1,3 +1,4 @@
+#include <limits>
 #include "common.h"
 #include "formula.h"
 #include "test_runner_p.h"
@@ -24,9 +25,6 @@ inline std::ostream& operator<<(std::ostream& output, const CellInterface::Value
 }
 
 namespace {
-std::string ToString(FormulaError::Category category) {
-    return std::string(FormulaError(category).ToString());
-}
 
 void TestPositionAndStringConversion() {
     auto testSingle = [](Position pos, std::string_view str) {
@@ -250,7 +248,7 @@ void TestErrorDiv0() {
 void TestEmptyCellTreatedAsZero() {
     auto sheet = CreateSheet();
     sheet->SetCell("A1"_pos, "=B2");
-    ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(), CellInterface::Value(0));
+    ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(), CellInterface::Value(0.0));
 }
 
 void TestFormulaInvalidPosition() {
@@ -347,6 +345,48 @@ void TestCellCircularReferences() {
     ASSERT(caught);
     ASSERT_EQUAL(sheet->GetCell("M6"_pos)->GetText(), "Ready");
 }
+
+void TestMyCircularDep() {
+    auto sheet = CreateSheet();
+    sheet->SetCell("A1"_pos, "42");
+    sheet->SetCell("A2"_pos, "=A1");
+    sheet->SetCell("A3"_pos, "=A2");
+    sheet->SetCell("A4"_pos, "= A3 + B2");
+    sheet->SetCell("B2"_pos, "=B1");
+    {
+        bool caught = false;
+        try {
+            sheet->SetCell("A1"_pos, "=A4");
+        } catch (const CircularDependencyException&) {
+            caught = true;
+        }
+
+        ASSERT(caught);
+    }
+    {
+        bool caught = false;
+        try {
+            sheet->SetCell("B1"_pos, "=A4");
+        } catch (const CircularDependencyException&) {
+            caught = true;
+        }
+
+        ASSERT(caught);
+    }
+
+}
+
+void TestMyDependencyGraph() {
+    auto sheet = CreateSheet();
+    sheet->SetCell("E4"_pos, "=40");
+    sheet->SetCell("E4"_pos, "=41");
+    sheet->ClearCell("E4"_pos);
+    sheet->SetCell("E4"_pos, "=41");
+    sheet->SetCell("E2"_pos, "=E4");
+    sheet->ClearCell("E4"_pos);
+    sheet->ClearCell("E2"_pos);
+}
+
 }  // namespace
 
 int main() {
@@ -370,4 +410,7 @@ int main() {
     RUN_TEST(tr, TestCellReferences);
     RUN_TEST(tr, TestFormulaIncorrect);
     RUN_TEST(tr, TestCellCircularReferences);
+    RUN_TEST(tr, TestMyCircularDep);
+    RUN_TEST(tr, TestMyDependencyGraph);
+    return 0;
 }

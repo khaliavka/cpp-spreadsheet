@@ -1,16 +1,17 @@
 #pragma once
 
-#include "common.h"
-#include "formula.h"
-
+#include <cassert>
 #include <functional>
 #include <unordered_set>
+
+#include "common.h"
+#include "formula.h"
 
 class Sheet;
 
 class Cell : public CellInterface {
 public:
-    Cell(Sheet& sheet);
+    Cell(const SheetInterface& sheet);
     ~Cell();
 
     void Set(std::string text);
@@ -19,7 +20,6 @@ public:
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
-
     bool IsReferenced() const;
 
 private:
@@ -28,9 +28,43 @@ private:
     class TextImpl;
     class FormulaImpl;
 
+    const SheetInterface& sheet_;
     std::unique_ptr<Impl> impl_;
+};
 
-    // Добавьте поля и методы для связи с таблицей, проверки циклических 
-    // зависимостей, графа зависимостей и т. д.
+class Cell::Impl {
+public:
+    virtual ~Impl() = default;
+    virtual Value GetValue() const = 0;
+    virtual std::string GetText() const = 0;
+    virtual std::vector<Position> GetReferencedCells() const = 0;
+};
 
+class Cell::EmptyImpl : public Cell::Impl {
+public:
+    explicit EmptyImpl() = default;
+    Value GetValue() const override;
+    std::string GetText() const override;
+    std::vector<Position> GetReferencedCells() const override;
+};
+
+class Cell::TextImpl : public Cell::Impl {
+public:
+    explicit TextImpl(std::string text);
+    Value GetValue() const override;
+    std::string GetText() const override;
+    std::vector<Position> GetReferencedCells() const override;
+private:
+    std::string text_;
+};
+
+class Cell::FormulaImpl : public Cell::Impl {
+public:
+    explicit FormulaImpl(const SheetInterface& sh, std::string expr);
+    Value GetValue() const override;
+    std::string GetText() const override;
+    std::vector<Position> GetReferencedCells() const override;
+private:
+    const SheetInterface& sheet_;
+    std::unique_ptr<FormulaInterface> formula_;
 };
