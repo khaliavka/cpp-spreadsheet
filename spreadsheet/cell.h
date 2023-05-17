@@ -11,24 +11,26 @@ class Sheet;
 
 class Cell : public CellInterface {
 public:
-    Cell(const SheetInterface& sheet);
+    Cell(Sheet& sh);
+    Cell(Sheet& sh, Position pos, std::string text);
     ~Cell();
-
-    void Set(std::string text);
-    void Clear();
 
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
-    bool IsReferenced() const;
+
+    void Clear();
+    bool IsEmpty() const;
 
 private:
+    void Set(Position pos, std::string text);
+
     class Impl;
     class EmptyImpl;
     class TextImpl;
     class FormulaImpl;
 
-    const SheetInterface& sheet_;
+    Sheet& sheet_;
     std::unique_ptr<Impl> impl_;
 };
 
@@ -38,6 +40,7 @@ public:
     virtual Value GetValue() const = 0;
     virtual std::string GetText() const = 0;
     virtual std::vector<Position> GetReferencedCells() const = 0;
+    virtual bool IsEmpty() const = 0;
 };
 
 class Cell::EmptyImpl : public Cell::Impl {
@@ -46,6 +49,7 @@ public:
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
+    bool IsEmpty() const override;
 };
 
 class Cell::TextImpl : public Cell::Impl {
@@ -54,17 +58,22 @@ public:
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
+    bool IsEmpty() const override;
 private:
     std::string text_;
 };
 
 class Cell::FormulaImpl : public Cell::Impl {
 public:
-    explicit FormulaImpl(const SheetInterface& sh, std::string expr);
+    explicit FormulaImpl(Sheet& sh, Position pos, std::string expr);
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
+    bool IsEmpty() const override;
+
+    ~FormulaImpl();
 private:
-    const SheetInterface& sheet_;
+    Sheet& sheet_;
+    Position pos_self_;
     std::unique_ptr<FormulaInterface> formula_;
 };

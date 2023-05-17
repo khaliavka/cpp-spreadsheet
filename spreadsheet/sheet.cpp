@@ -17,9 +17,7 @@ void Sheet::SetCell(Position pos, std::string text) {
     if (!pos.IsValid()) {
         throw InvalidPositionException("Invalid position in SetCell()");
     }
-    auto new_cell = std::make_unique<Cell>(*this);
-
-    new_cell->Set(std::move(text)); // Can throw FormulaException
+    auto new_cell = std::make_unique<Cell>(*this, pos, std::move(text)); // Can throw FormulaException
     CheckCircularDependency(pos, new_cell); // Can throw CircularDependencyException
 
     auto& insertion_place = sheet_[pos.row][pos.col];
@@ -32,7 +30,6 @@ void Sheet::SetCell(Position pos, std::string text) {
         if (!cell) {
             cell = std::make_unique<Cell>(*this);
         }
-        dependency_graph_[p].AddDependent(pos);
     }
 }
 
@@ -57,13 +54,10 @@ void Sheet::ClearCell(Position pos) {
     if (sheet_.count(pos.row) != 0 && sheet_.at(pos.row).count(pos.col) != 0 &&
         sheet_.at(pos.row).at(pos.col)) {
         auto& cell = sheet_.at(pos.row).at(pos.col);
-        for (const auto& p : cell->GetReferencedCells()) {
-            assert(sheet_.count(p.row) != 0 && sheet_.at(p.row).count(p.col) != 0);
-            assert(dependency_graph_.count(p) != 0);
-            dependency_graph_.at(p).RemoveDependent(pos);
+        if (!cell->IsEmpty()) {
+            area_.RemovePosition(pos);
         }
         cell.reset();
-        area_.RemovePosition(pos);
     }
 }
 
@@ -112,6 +106,16 @@ void Sheet::PrintTexts(std::ostream& output) const {
     }
 }
 
+void Sheet::AddDependency(Position owner, Position dependent) {
+    dependency_graph_[owner].AddDependent(dependent);
+}
+
+void Sheet::RemoveDependency(Position owner, Position dependent) {
+    //    assert(dependency_graph_.count(owner) != 0);
+    if (dependency_graph_.count(owner) != 0) {
+        dependency_graph_.at(owner).RemoveDependent(dependent);
+    }
+}
 void Sheet::CheckCircularDependency(Position pos, const std::unique_ptr<Cell>& cell) const {
     if (!cell) {
         return;

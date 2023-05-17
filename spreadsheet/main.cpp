@@ -378,13 +378,16 @@ void TestMyCircularDep() {
 
 void TestMyDependencyGraph() {
     auto sheet = CreateSheet();
-    sheet->SetCell("E4"_pos, "=40");
+    sheet->SetCell("E4"_pos, "40");
+
     sheet->SetCell("E4"_pos, "=41");
+
     sheet->ClearCell("E4"_pos);
-    sheet->SetCell("E4"_pos, "=41");
-    sheet->SetCell("E2"_pos, "=E4");
+    sheet->SetCell("E5"_pos, "=E4 + E3");
     sheet->ClearCell("E4"_pos);
     sheet->ClearCell("E2"_pos);
+    sheet->ClearCell("E5"_pos);
+    sheet->ClearCell("A1"_pos);
 }
 
 }  // namespace

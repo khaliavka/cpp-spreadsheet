@@ -1,20 +1,26 @@
 #include "cell.h"
+#include "sheet.h"
 
 #include <cassert>
 #include <iostream>
 #include <optional>
 #include <string>
 
-Cell::Cell(const SheetInterface& sheet)
-    : sheet_(sheet), impl_(std::make_unique<EmptyImpl>(EmptyImpl{})) {}
+Cell::Cell(Sheet& sh)
+    : sheet_(sh), impl_(std::make_unique<EmptyImpl>(EmptyImpl{})) {}
+
+Cell::Cell(Sheet& sh, Position pos, std::string text)
+    : sheet_(sh), impl_(nullptr) {
+    Set(pos, std::move(text));
+}
 
 Cell::~Cell() {}
 
-void Cell::Set(std::string text) {
+void Cell::Set(Position pos, std::string text) {
     if (text.empty()) {
         impl_ = std::make_unique<EmptyImpl>(EmptyImpl{});
     } else if (text[0] == FORMULA_SIGN && text.size() > 1) {
-        impl_ = std::make_unique<FormulaImpl>(FormulaImpl(sheet_, text.substr(1)));
+        impl_ = std::move(std::make_unique<FormulaImpl>(sheet_, pos, text.substr(1)));
     } else {
         impl_ = std::make_unique<TextImpl>(TextImpl(std::move(text)));
     }
@@ -36,8 +42,8 @@ std::vector<Position> Cell::GetReferencedCells() const {
     return impl_->GetReferencedCells();
 }
 
-bool Cell::IsReferenced() const {
-    return true;
+bool Cell::IsEmpty() const {
+    return impl_->IsEmpty();
 }
 
 // -- EmptyImpl --
@@ -52,6 +58,10 @@ std::string Cell::EmptyImpl::GetText() const {
 
 std::vector<Position> Cell::EmptyImpl::GetReferencedCells() const {
     return {};
+}
+
+bool Cell::EmptyImpl::IsEmpty() const {
+    return true;
 }
 
 // -- TextImpl --
@@ -74,10 +84,18 @@ std::vector<Position> Cell::TextImpl::GetReferencedCells() const {
     return {};
 }
 
+bool Cell::TextImpl::IsEmpty() const {
+    return false;
+}
+
 // -- FormulaImpl --
 
-Cell::FormulaImpl::FormulaImpl(const SheetInterface& sh, std::string expr)
-    : sheet_(sh), formula_(ParseFormula(std::move(expr))) {}
+Cell::FormulaImpl::FormulaImpl(Sheet& sh, Position pos, std::string expr)
+    : sheet_(sh), pos_self_(pos), formula_(ParseFormula(std::move(expr))) {
+    for (const auto& p : formula_->GetReferencedCells()) {
+        sheet_.AddDependency(p, pos_self_);
+    }
+}
 
 CellInterface::Value Cell::FormulaImpl::GetValue() const {
     auto result = formula_->Evaluate(sheet_);
@@ -94,4 +112,14 @@ std::string Cell::FormulaImpl::GetText() const {
 
 std::vector<Position> Cell::FormulaImpl::GetReferencedCells() const {
     return formula_->GetReferencedCells();
+}
+
+bool Cell::FormulaImpl::IsEmpty() const {
+    return false;
+}
+
+Cell::FormulaImpl::~FormulaImpl() {
+    for (const auto& p : formula_->GetReferencedCells()) {
+        sheet_.RemoveDependency(p, pos_self_);
+    }
 }

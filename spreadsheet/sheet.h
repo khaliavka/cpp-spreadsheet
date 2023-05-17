@@ -24,6 +24,8 @@ public:
     void PrintValues(std::ostream& output) const override;
     void PrintTexts(std::ostream& output) const override;
 
+    void AddDependency(Position owner, Position dependent);
+    void RemoveDependency(Position owner, Position dependent);
 private:
     void CheckCircularDependency(Position pos, const std::unique_ptr<Cell>& cell) const;
 
