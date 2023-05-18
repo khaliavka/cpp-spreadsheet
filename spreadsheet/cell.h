@@ -12,7 +12,7 @@ class Sheet;
 class Cell : public CellInterface {
 public:
     Cell(Sheet& sh);
-    Cell(Sheet& sh, Position pos, std::string text);
+    Cell(Sheet& sh, std::string text);
     ~Cell();
 
     Value GetValue() const override;
@@ -20,10 +20,11 @@ public:
     std::vector<Position> GetReferencedCells() const override;
 
     void Clear();
+    void InvalidateCellCache() const;
     bool IsEmpty() const;
 
 private:
-    void Set(Position pos, std::string text);
+    void Set(std::string text);
 
     class Impl;
     class EmptyImpl;
@@ -40,6 +41,7 @@ public:
     virtual Value GetValue() const = 0;
     virtual std::string GetText() const = 0;
     virtual std::vector<Position> GetReferencedCells() const = 0;
+    virtual void InvalidateCache() const = 0;
     virtual bool IsEmpty() const = 0;
 };
 
@@ -49,6 +51,7 @@ public:
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
+    void InvalidateCache() const override;
     bool IsEmpty() const override;
 };
 
@@ -58,6 +61,7 @@ public:
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
+    void InvalidateCache() const override;
     bool IsEmpty() const override;
 private:
     std::string text_;
@@ -65,15 +69,19 @@ private:
 
 class Cell::FormulaImpl : public Cell::Impl {
 public:
-    explicit FormulaImpl(Sheet& sh, Position pos, std::string expr);
+    explicit FormulaImpl(Sheet& sh, std::string expr);
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
+    void InvalidateCache() const override;
     bool IsEmpty() const override;
-
-    ~FormulaImpl();
 private:
+    struct Cache {
+        Value value;
+        bool is_valid = false;
+    };
+
     Sheet& sheet_;
-    Position pos_self_;
     std::unique_ptr<FormulaInterface> formula_;
+    mutable Cache cache_;
 };

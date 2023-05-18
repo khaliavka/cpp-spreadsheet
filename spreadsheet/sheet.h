@@ -23,12 +23,12 @@ public:
 
     void PrintValues(std::ostream& output) const override;
     void PrintTexts(std::ostream& output) const override;
-
-    void AddDependency(Position owner, Position dependent);
-    void RemoveDependency(Position owner, Position dependent);
 private:
     void CheckCircularDependency(Position pos, const std::unique_ptr<Cell>& cell) const;
-
+    void AddDependencies(Position pos, const std::unique_ptr<Cell>& cell);
+    void RemoveDependencies(Position pos, const std::unique_ptr<Cell>& cell);
+    void MakeEmptyDependentCells(const std::unique_ptr<Cell>& cell);
+    void InvalidateCache(Position pos) const;
     class RelevantArea {
     public:
         void AddPosition(Position pos);

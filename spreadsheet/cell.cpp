@@ -9,18 +9,18 @@
 Cell::Cell(Sheet& sh)
     : sheet_(sh), impl_(std::make_unique<EmptyImpl>(EmptyImpl{})) {}
 
-Cell::Cell(Sheet& sh, Position pos, std::string text)
+Cell::Cell(Sheet& sh, std::string text)
     : sheet_(sh), impl_(nullptr) {
-    Set(pos, std::move(text));
+    Set(std::move(text));
 }
 
 Cell::~Cell() {}
 
-void Cell::Set(Position pos, std::string text) {
+void Cell::Set(std::string text) {
     if (text.empty()) {
         impl_ = std::make_unique<EmptyImpl>(EmptyImpl{});
     } else if (text[0] == FORMULA_SIGN && text.size() > 1) {
-        impl_ = std::move(std::make_unique<FormulaImpl>(sheet_, pos, text.substr(1)));
+        impl_ = std::move(std::make_unique<FormulaImpl>(sheet_, text.substr(1)));
     } else {
         impl_ = std::make_unique<TextImpl>(TextImpl(std::move(text)));
     }
@@ -42,6 +42,10 @@ std::vector<Position> Cell::GetReferencedCells() const {
     return impl_->GetReferencedCells();
 }
 
+void Cell::InvalidateCellCache() const {
+    impl_->InvalidateCache();
+}
+
 bool Cell::IsEmpty() const {
     return impl_->IsEmpty();
 }
@@ -58,6 +62,10 @@ std::string Cell::EmptyImpl::GetText() const {
 
 std::vector<Position> Cell::EmptyImpl::GetReferencedCells() const {
     return {};
+}
+
+void Cell::EmptyImpl::InvalidateCache() const {
+//    does nothing
 }
 
 bool Cell::EmptyImpl::IsEmpty() const {
@@ -84,25 +92,33 @@ std::vector<Position> Cell::TextImpl::GetReferencedCells() const {
     return {};
 }
 
+void Cell::TextImpl::InvalidateCache() const {
+//    does nothing
+}
+
 bool Cell::TextImpl::IsEmpty() const {
     return false;
 }
 
 // -- FormulaImpl --
 
-Cell::FormulaImpl::FormulaImpl(Sheet& sh, Position pos, std::string expr)
-    : sheet_(sh), pos_self_(pos), formula_(ParseFormula(std::move(expr))) {
-    for (const auto& p : formula_->GetReferencedCells()) {
-        sheet_.AddDependency(p, pos_self_);
-    }
-}
+Cell::FormulaImpl::FormulaImpl(Sheet& sh, std::string expr)
+    : sheet_(sh), formula_(ParseFormula(std::move(expr))) {}
 
 CellInterface::Value Cell::FormulaImpl::GetValue() const {
-    auto result = formula_->Evaluate(sheet_);
-    if (std::holds_alternative<double>(result)) {
-        return std::get<double>(result);
+    if (cache_.is_valid) {
+        return cache_.value;
     }
-    return std::get<FormulaError>(result);
+    auto result = formula_->Evaluate(sheet_);
+
+    if (std::holds_alternative<double>(result)) {
+        cache_.value = std::get<double>(result);
+    } else {
+        assert(std::holds_alternative<FormulaError>(result));
+        cache_.value = std::get<FormulaError>(result);
+    }
+    cache_.is_valid = true;
+    return cache_.value;
 }
 
 std::string Cell::FormulaImpl::GetText() const {
@@ -114,12 +130,10 @@ std::vector<Position> Cell::FormulaImpl::GetReferencedCells() const {
     return formula_->GetReferencedCells();
 }
 
-bool Cell::FormulaImpl::IsEmpty() const {
-    return false;
+void Cell::FormulaImpl::InvalidateCache() const {
+    cache_.is_valid = false;
 }
 
-Cell::FormulaImpl::~FormulaImpl() {
-    for (const auto& p : formula_->GetReferencedCells()) {
-        sheet_.RemoveDependency(p, pos_self_);
-    }
+bool Cell::FormulaImpl::IsEmpty() const {
+    return false;
 }

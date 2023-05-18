@@ -376,18 +376,24 @@ void TestMyCircularDep() {
 
 }
 
-void TestMyDependencyGraph() {
+void TestMyGraphAndCache() {
     auto sheet = CreateSheet();
-    sheet->SetCell("E4"_pos, "40");
+    sheet->SetCell("B2"_pos, "=A1");
+    sheet->SetCell("C3"_pos, "=A1");
+    sheet->SetCell("D4"_pos, "=A1");
+    sheet->SetCell("F6"_pos, "=D4");
 
-    sheet->SetCell("E4"_pos, "=41");
+    sheet->SetCell("A1"_pos, "42");
+    ASSERT_EQUAL(sheet->GetCell("B2"_pos)->GetValue(), CellInterface::Value(42.0));
+    ASSERT_EQUAL(sheet->GetCell("C3"_pos)->GetValue(), CellInterface::Value(42.0));
+    ASSERT_EQUAL(sheet->GetCell("D4"_pos)->GetValue(), CellInterface::Value(42.0));
+    ASSERT_EQUAL(sheet->GetCell("F6"_pos)->GetValue(), CellInterface::Value(42.0));
 
-    sheet->ClearCell("E4"_pos);
-    sheet->SetCell("E5"_pos, "=E4 + E3");
-    sheet->ClearCell("E4"_pos);
-    sheet->ClearCell("E2"_pos);
-    sheet->ClearCell("E5"_pos);
-    sheet->ClearCell("A1"_pos);
+    sheet->SetCell("A1"_pos, "44");
+    ASSERT_EQUAL(sheet->GetCell("B2"_pos)->GetValue(), CellInterface::Value(44.0));
+    ASSERT_EQUAL(sheet->GetCell("C3"_pos)->GetValue(), CellInterface::Value(44.0));
+    ASSERT_EQUAL(sheet->GetCell("D4"_pos)->GetValue(), CellInterface::Value(44.0));
+    ASSERT_EQUAL(sheet->GetCell("F6"_pos)->GetValue(), CellInterface::Value(44.0));
 }
 
 }  // namespace
@@ -414,6 +420,6 @@ int main() {
     RUN_TEST(tr, TestFormulaIncorrect);
     RUN_TEST(tr, TestCellCircularReferences);
     RUN_TEST(tr, TestMyCircularDep);
-    RUN_TEST(tr, TestMyDependencyGraph);
+    RUN_TEST(tr, TestMyGraphAndCache);
     return 0;
 }
