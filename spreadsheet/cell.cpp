@@ -106,19 +106,33 @@ Cell::FormulaImpl::FormulaImpl(Sheet& sh, std::string expr)
     : sheet_(sh), formula_(ParseFormula(std::move(expr))) {}
 
 CellInterface::Value Cell::FormulaImpl::GetValue() const {
-    if (cache_.is_valid) {
-        return cache_.value;
-    }
-    auto result = formula_->Evaluate(sheet_);
+    constexpr bool cache_enabled = true;
+    if constexpr (cache_enabled) {
 
-    if (std::holds_alternative<double>(result)) {
-        cache_.value = std::get<double>(result);
+        if (cache_.is_valid) {
+            return cache_.value;
+        }
+        auto result = formula_->Evaluate(sheet_);
+
+        if (std::holds_alternative<double>(result)) {
+            cache_.value = std::get<double>(result);
+        } else {
+            assert(std::holds_alternative<FormulaError>(result));
+            cache_.value = std::get<FormulaError>(result);
+        }
+        cache_.is_valid = true;
+        return cache_.value;
+
     } else {
+
+        auto result = formula_->Evaluate(sheet_);
+        if (std::holds_alternative<double>(result)) {
+            return std::get<double>(result);
+        }
         assert(std::holds_alternative<FormulaError>(result));
-        cache_.value = std::get<FormulaError>(result);
+        return std::get<FormulaError>(result);
+
     }
-    cache_.is_valid = true;
-    return cache_.value;
 }
 
 std::string Cell::FormulaImpl::GetText() const {
