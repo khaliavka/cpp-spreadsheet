@@ -6,10 +6,10 @@
 #include <optional>
 #include <string>
 
-Cell::Cell(Sheet& sh)
+Cell::Cell(const Sheet& sh)
     : sheet_(sh), impl_(std::make_unique<EmptyImpl>(EmptyImpl{})) {}
 
-Cell::Cell(Sheet& sh, std::string text)
+Cell::Cell(const Sheet& sh, std::string text)
     : sheet_(sh), impl_(nullptr) {
     Set(std::move(text));
 }
@@ -20,14 +20,10 @@ void Cell::Set(std::string text) {
     if (text.empty()) {
         impl_ = std::make_unique<EmptyImpl>(EmptyImpl{});
     } else if (text[0] == FORMULA_SIGN && text.size() > 1) {
-        impl_ = std::move(std::make_unique<FormulaImpl>(sheet_, text.substr(1)));
+        impl_ = std::make_unique<FormulaImpl>(sheet_, text.substr(1));
     } else {
         impl_ = std::make_unique<TextImpl>(TextImpl(std::move(text)));
     }
-}
-
-void Cell::Clear() {
-    impl_ = std::make_unique<EmptyImpl>(EmptyImpl{});
 }
 
 Cell::Value Cell::GetValue() const {
@@ -102,26 +98,25 @@ bool Cell::TextImpl::IsEmpty() const {
 
 // -- FormulaImpl --
 
-Cell::FormulaImpl::FormulaImpl(Sheet& sh, std::string expr)
+Cell::FormulaImpl::FormulaImpl(const Sheet& sh, std::string expr)
     : sheet_(sh), formula_(ParseFormula(std::move(expr))) {}
 
 CellInterface::Value Cell::FormulaImpl::GetValue() const {
     constexpr bool cache_enabled = true;
     if constexpr (cache_enabled) {
 
-        if (cache_.is_valid) {
-            return cache_.value;
+        if (cache_) {
+            return *cache_;
         }
         auto result = formula_->Evaluate(sheet_);
 
         if (std::holds_alternative<double>(result)) {
-            cache_.value = std::get<double>(result);
+            cache_ = std::get<double>(result);
         } else {
             assert(std::holds_alternative<FormulaError>(result));
-            cache_.value = std::get<FormulaError>(result);
+            cache_ = std::get<FormulaError>(result);
         }
-        cache_.is_valid = true;
-        return cache_.value;
+        return *cache_;
 
     } else {
 
@@ -145,7 +140,7 @@ std::vector<Position> Cell::FormulaImpl::GetReferencedCells() const {
 }
 
 void Cell::FormulaImpl::InvalidateCache() const {
-    cache_.is_valid = false;
+    cache_.reset();
 }
 
 bool Cell::FormulaImpl::IsEmpty() const {

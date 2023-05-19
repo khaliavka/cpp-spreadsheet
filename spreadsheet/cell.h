@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <functional>
+#include <optional>
 #include <unordered_set>
 
 #include "common.h"
@@ -11,15 +12,14 @@ class Sheet;
 
 class Cell : public CellInterface {
 public:
-    Cell(Sheet& sh);
-    Cell(Sheet& sh, std::string text);
+    Cell(const Sheet& sh);
+    Cell(const Sheet& sh, std::string text);
     ~Cell();
 
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
 
-    void Clear();
     void InvalidateCellCache() const;
     bool IsEmpty() const;
 
@@ -31,7 +31,7 @@ private:
     class TextImpl;
     class FormulaImpl;
 
-    Sheet& sheet_;
+    const Sheet& sheet_;
     std::unique_ptr<Impl> impl_;
 };
 
@@ -69,19 +69,16 @@ private:
 
 class Cell::FormulaImpl : public Cell::Impl {
 public:
-    explicit FormulaImpl(Sheet& sh, std::string expr);
+    explicit FormulaImpl(const Sheet& sh, std::string expr);
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
     void InvalidateCache() const override;
     bool IsEmpty() const override;
 private:
-    struct Cache {
-        Value value;
-        bool is_valid = false;
-    };
+    using Cache = std::optional<Value>;
 
-    Sheet& sheet_;
+    const Sheet& sheet_;
     std::unique_ptr<FormulaInterface> formula_;
     mutable Cache cache_;
 };

@@ -29,6 +29,7 @@ private:
     void RemoveDependencies(Position pos, const std::unique_ptr<Cell>& cell);
     void MakeEmptyDependentCells(const std::unique_ptr<Cell>& cell);
     void InvalidateCache(Position pos) const;
+
     class RelevantArea {
     public:
         void AddPosition(Position pos);
@@ -43,8 +44,8 @@ private:
 
     struct KeyHash {
         std::size_t operator()(const Position& pos) const {
-            return static_cast<size_t>(pos.row) +
-                   100'000 * static_cast<size_t>(pos.col);
+            return static_cast<std::size_t>(pos.row) +
+                   100'000 * static_cast<std::size_t>(pos.col);
         }
     };
 
