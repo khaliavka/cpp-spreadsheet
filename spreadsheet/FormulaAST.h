@@ -23,7 +23,7 @@ public:
     FormulaAST& operator=(FormulaAST&&) = default;
     ~FormulaAST();
 
-    double Execute(std::function<double(const Position*)> function) const;
+    double Execute(std::function<double(const Position*)> solver) const;
     void PrintCells(std::ostream& out) const;
     void Print(std::ostream& out) const;
     void PrintFormula(std::ostream& out) const;

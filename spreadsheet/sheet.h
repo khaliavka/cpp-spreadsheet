@@ -29,17 +29,20 @@ private:
     void RemoveDependencies(Position pos, const std::unique_ptr<Cell>& cell);
     void MakeEmptyDependentCells(const std::unique_ptr<Cell>& cell);
     void InvalidateCache(Position pos) const;
+    void Print(std::ostream& output, std::function<void(std::ostream&, Position)> printer) const;
 
-    class RelevantArea {
+    class PrintableArea {
     public:
         void AddPosition(Position pos);
         void RemovePosition(Position pos);
         Size GetSize() const;
     private:
-        using RowIndex = int;
-        using ColIndex = int;
-        std::map<RowIndex, int> row_index_count;
-        std::map<ColIndex, int> col_index_count;
+        using AxisIndex = int;
+
+        void RemoveProjection(std::map<AxisIndex, int>& index_count, int axis);
+
+        std::map<AxisIndex, int> row_index_count;
+        std::map<AxisIndex, int> col_index_count;
     };
 
     struct KeyHash {
@@ -65,8 +68,7 @@ private:
         DependentCells dependent_cells_;
     };
 
-    using Row = std::unordered_map<int, std::unique_ptr<Cell>>;
-    std::unordered_map<int, Row> sheet_;
+    std::unordered_map<Position, std::unique_ptr<Cell>, KeyHash, KeyEqual> sheet_;
     std::unordered_map<Position, Node, KeyHash, KeyEqual> dependency_graph_;
-    RelevantArea area_;
+    PrintableArea area_;
 };

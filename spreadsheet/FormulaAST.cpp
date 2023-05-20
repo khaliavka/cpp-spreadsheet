@@ -65,14 +65,14 @@ constexpr PrecedenceRule PRECEDENCE_RULES[EP_END][EP_END] = {
     /* EP_DIV */ {PR_BOTH, PR_BOTH, PR_RIGHT, PR_RIGHT, PR_NONE, PR_NONE},
     /* EP_UNARY */ {PR_BOTH, PR_BOTH, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
     /* EP_ATOM */ {PR_NONE, PR_NONE, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
-};
+    };
 
 class Expr {
 public:
     virtual ~Expr() = default;
     virtual void Print(std::ostream& out) const = 0;
     virtual void DoPrintFormula(std::ostream& out, ExprPrecedence precedence) const = 0;
-    virtual double Evaluate(std::function<double(const Position*)> function) const = 0;
+    virtual double Evaluate(std::function<double(const Position*)> solver) const = 0;
 
     // higher is tighter
     virtual ExprPrecedence GetPrecedence() const = 0;
@@ -127,36 +127,37 @@ public:
 
     ExprPrecedence GetPrecedence() const override {
         switch (type_) {
-            case Add:
-                return EP_ADD;
-            case Subtract:
-                return EP_SUB;
-            case Multiply:
-                return EP_MUL;
-            case Divide:
-                return EP_DIV;
-            default:
-                // have to do this because VC++ has a buggy warning
-                assert(false);
-                return static_cast<ExprPrecedence>(INT_MAX);
+        case Add:
+            return EP_ADD;
+        case Subtract:
+            return EP_SUB;
+        case Multiply:
+            return EP_MUL;
+        case Divide:
+            return EP_DIV;
+        default:
+            // have to do this because VC++ has a buggy warning
+            assert(false);
+            return static_cast<ExprPrecedence>(INT_MAX);
         }
     }
 
-    double Evaluate(std::function<double(const Position*)> function) const override {
+    double Evaluate(std::function<double(const Position*)> solver) const override {
         // Скопируйте ваше решение из предыдущих уроков.
-        const auto lhs_eval = lhs_->Evaluate(function);
-        const auto rhs_eval = rhs_->Evaluate(function);
+        const auto lhs_eval = lhs_->Evaluate(solver);
+        const auto rhs_eval = rhs_->Evaluate(solver);
         switch (type_) {
-            case Add:
-                return lhs_eval + rhs_eval;
-            case Subtract:
-                return lhs_eval - rhs_eval;
-            case Multiply:
-                return lhs_eval * rhs_eval;
-            case Divide:
-                return lhs_eval / rhs_eval;
-            default:
-                return {};
+        case Add:
+            return lhs_eval + rhs_eval;
+        case Subtract:
+            return lhs_eval - rhs_eval;
+        case Multiply:
+            return lhs_eval * rhs_eval;
+        case Divide:
+            return lhs_eval / rhs_eval;
+        default:
+            assert(false);
+            return {};
         }
     }
 
@@ -194,16 +195,17 @@ public:
         return EP_UNARY;
     }
 
-    double Evaluate(std::function<double(const Position*)> function) const override {
+    double Evaluate(std::function<double(const Position*)> solver) const override {
         // Скопируйте ваше решение из предыдущих уроков.
         switch (type_) {
         case UnaryPlus:
-          return +operand_->Evaluate(function);
+            return +operand_->Evaluate(solver);
         case UnaryMinus:
-          return -operand_->Evaluate(function);
+            return -operand_->Evaluate(solver);
         default:
+            assert(false);
             return {};
-      }
+        }
     }
 
 private:
@@ -233,9 +235,9 @@ public:
         return EP_ATOM;
     }
 
-    double Evaluate(std::function<double(const Position*)> function) const override {
+    double Evaluate(std::function<double(const Position*)> solver) const override {
         // реализуйте метод.
-        return function(cell_);
+        return solver(cell_);
     }
 
 private:
@@ -414,8 +416,8 @@ void FormulaAST::PrintFormula(std::ostream& out) const {
     root_expr_->PrintFormula(out, ASTImpl::EP_ATOM);
 }
 
-double FormulaAST::Execute(std::function<double(const Position*)> function) const {
-    return root_expr_->Evaluate(function);
+double FormulaAST::Execute(std::function<double(const Position*)> solver) const {
+    return root_expr_->Evaluate(solver);
 }
 
 FormulaAST::FormulaAST(std::unique_ptr<ASTImpl::Expr> root_expr, std::forward_list<Position> cells)

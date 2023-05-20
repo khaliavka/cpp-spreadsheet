@@ -61,7 +61,7 @@ std::vector<Position> Cell::EmptyImpl::GetReferencedCells() const {
 }
 
 void Cell::EmptyImpl::InvalidateCache() const {
-//    does nothing
+    //    does nothing
 }
 
 bool Cell::EmptyImpl::IsEmpty() const {
@@ -89,7 +89,7 @@ std::vector<Position> Cell::TextImpl::GetReferencedCells() const {
 }
 
 void Cell::TextImpl::InvalidateCache() const {
-//    does nothing
+    //    does nothing
 }
 
 bool Cell::TextImpl::IsEmpty() const {
@@ -108,24 +108,13 @@ CellInterface::Value Cell::FormulaImpl::GetValue() const {
         if (cache_) {
             return *cache_;
         }
-        auto result = formula_->Evaluate(sheet_);
-
-        if (std::holds_alternative<double>(result)) {
-            cache_ = std::get<double>(result);
-        } else {
-            assert(std::holds_alternative<FormulaError>(result));
-            cache_ = std::get<FormulaError>(result);
-        }
+        std::visit([this](auto&& r){ cache_ = r; }, formula_->Evaluate(sheet_));
         return *cache_;
 
     } else {
 
-        auto result = formula_->Evaluate(sheet_);
-        if (std::holds_alternative<double>(result)) {
-            return std::get<double>(result);
-        }
-        assert(std::holds_alternative<FormulaError>(result));
-        return std::get<FormulaError>(result);
+        return std::visit([](auto&& r) -> Value { return r; },
+                          formula_->Evaluate(sheet_));
 
     }
 }
