@@ -169,12 +169,10 @@ void Sheet::PrintableArea::RemoveProjection(std::map<AxisIndex, int>& index_coun
 }
 
 Size Sheet::PrintableArea::GetSize() const {
-    return {row_index_count.size() == 0
-                ? 0
-                : std::prev(row_index_count.end())->first + 1,
-            col_index_count.size() == 0
-                ? 0
-                : std::prev(col_index_count.end())->first + 1};
+    return {row_index_count.empty() ?
+                0 : std::prev(row_index_count.end())->first + 1,
+            col_index_count.empty() ?
+                0 : std::prev(col_index_count.end())->first + 1};
 }
 
 // -- Node --
