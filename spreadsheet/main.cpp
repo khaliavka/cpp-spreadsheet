@@ -399,13 +399,13 @@ void TestMyGraphAndCache() {
 void TestMyEmptyCellsPrintableSize() {
     auto sheet = CreateSheet();
     sheet->SetCell("F6"_pos,"Not empty");
-    ASSERT_EQUAL(sheet->GetPrintableSize(), Size({6, 6}));
+    ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{6, 6}));
     sheet->SetCell("F6"_pos, "");
-    ASSERT_EQUAL(sheet->GetPrintableSize(), Size({0, 0}));
+    ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{0, 0}));
     sheet->SetCell("F6"_pos,"Not empty");
-    ASSERT_EQUAL(sheet->GetPrintableSize(), Size({6, 6}));
+    ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{6, 6}));
     sheet->ClearCell("F6"_pos);
-    ASSERT_EQUAL(sheet->GetPrintableSize(), Size({0, 0}));
+    ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{0, 0}));
 }
 
 }  // namespace
