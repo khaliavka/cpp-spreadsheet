@@ -406,6 +406,9 @@ void TestMyEmptyCellsPrintableSize() {
     ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{6, 6}));
     sheet->ClearCell("F6"_pos);
     ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{0, 0}));
+    sheet->SetCell("F6"_pos,"Not empty");
+    sheet->SetCell("F6"_pos,"Not empty 2");
+    ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{6, 6}));
 }
 
 }  // namespace
