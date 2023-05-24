@@ -21,12 +21,14 @@ void Sheet::SetCell(Position pos, std::string text) {
     auto new_cell = std::make_unique<Cell>(*this, std::move(text)); // Can throw FormulaException
     CheckCircularDependency(pos, new_cell); // Can throw CircularDependencyException
     auto& cell_in_place = sheet_[pos];
-    if (cell_in_place) {
+    if (cell_in_place && !cell_in_place->IsEmpty()) {
         RemoveDependencies(pos, cell_in_place);
-    } else {
-        area_.AddPosition(pos);
+        area_.RemovePosition(pos);
     }
     cell_in_place = std::move(new_cell);
+    if (!cell_in_place->IsEmpty()) {
+        area_.AddPosition(pos);
+    }
     MakeEmptyDependentCells(cell_in_place);
     AddDependencies(pos, cell_in_place);
     InvalidateCache(pos);

@@ -396,6 +396,18 @@ void TestMyGraphAndCache() {
     ASSERT_EQUAL(sheet->GetCell("F6"_pos)->GetValue(), CellInterface::Value(44.0));
 }
 
+void TestMyEmptyCellsPrintableSize() {
+    auto sheet = CreateSheet();
+    sheet->SetCell("F6"_pos,"Not empty");
+    ASSERT_EQUAL(sheet->GetPrintableSize(), Size({6, 6}));
+    sheet->SetCell("F6"_pos, "");
+    ASSERT_EQUAL(sheet->GetPrintableSize(), Size({0, 0}));
+    sheet->SetCell("F6"_pos,"Not empty");
+    ASSERT_EQUAL(sheet->GetPrintableSize(), Size({6, 6}));
+    sheet->ClearCell("F6"_pos);
+    ASSERT_EQUAL(sheet->GetPrintableSize(), Size({0, 0}));
+}
+
 }  // namespace
 
 int main() {
@@ -421,5 +433,6 @@ int main() {
     RUN_TEST(tr, TestCellCircularReferences);
     RUN_TEST(tr, TestMyCircularDep);
     RUN_TEST(tr, TestMyGraphAndCache);
+    RUN_TEST(tr, TestMyEmptyCellsPrintableSize);
     return 0;
 }
